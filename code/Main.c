@@ -111,7 +111,8 @@ int main(void)
 	LCDInitialize();
 
         int num_temp = 0;
-        
+        char* color = "";
+
         printf("Working\n");
 
 	while(1)
@@ -124,81 +125,46 @@ int main(void)
             LCDMoveCursor(0,0);
             LCDPrintString(value);
             printf("%d\n", ADC_value);
-            
-///////////////////////////////////////////////////////////////////////////////
-            switch(state){
-                case 0: // forward state
-                    if(ADC_value <= PWM_Period/2){
-                        OC1RS = PWM_Period;
-                     }
-                    else if(ADC_value > PWM_Period/2){
-                        OC1RS = PWM_Period - ((ADC_value * 2) - PWM_Period);
-                    }
-
-                    if(ADC_value >= PWM_Period/2){
-                        OC2RS = PWM_Period;
-                    }
-                    else if(ADC_value < PWM_Period/2){
-                        OC2RS = (ADC_value * 2);
-                    }
-                    RPOR1bits.RP2R = 18;
-                    RPOR4bits.RP8R = 19;
-                    RPOR5bits.RP10R = 20;
-                    RPOR4bits.RP9R = 20;
-                    break;                    
-                case 1:  // IDLE state
-                    OC1RS = 0;
-                    OC2RS = 0;
-                    break;
-                case 2: // reverse state
-                   if(ADC_value <= PWM_Period/2){
-                        OC1RS = PWM_Period;
-                     }
-                    else if(ADC_value > PWM_Period/2){
-                        OC1RS = PWM_Period - ((ADC_value * 2) - PWM_Period);
-                    }
-
-                    if(ADC_value >= PWM_Period/2){
-                        OC2RS = PWM_Period;
-                    }
-                    else if(ADC_value < PWM_Period/2){
-                        OC2RS = (ADC_value * 2);
-                    }
-                    RPOR5bits.RP10R = 18;
-                    RPOR4bits.RP9R = 19;
-                    RPOR1bits.RP2R = 20;
-                    RPOR4bits.RP8R = 20;
-//                    LATBbits.LATB2 = 0;
-//                    LATBbits.LATB8 = 0;
-                    
-                    break;
-                case 3:  // IDLE state
-                    OC1RS = 0;
-                    OC2RS = 0;
-                    break;
+            if(ADC_value < 80){
+                color = "black";
             }
+            else if(ADC_value > 150 && ADC_value < 250){
+                color = "red";
+            }
+            else if(ADC_value > 275){
+                color = "white";
+            }
+            LCDMoveCursor(1,0);
+            LCDPrintString(color);
+            color = "";
+
+
+///////////////////////////////////////////////////////////////////////////////
+//            switch(state){
+//                case 0: // forward state
+//
+//                case 1:  // IDLE state
+//                    OC1RS = 0;
+//                    OC2RS = 0;
+//                    break;
+//
+//            }
 ///////////////////////////////////////////////////////////////////////////////
 
-            // TO DO  print the duty cycle of both PWM channels onto the LCD   convert a float to a string...
-            LCDMoveCursor(1,0);
-            num_temp = (int)(((float)OC1RS / (float)1023) * 100);
-            sprintf(value, "%2d%%", num_temp);
-            LCDPrintString(value);
-//            LCDPrintString("%");
-            LCDMoveCursor(1,7);
-            num_temp = (int)(((float)OC2RS / (float)1023) * 100);
-            sprintf(value, "%2d%%", num_temp);
-            LCDPrintString(value);
-//            LCDPrintString("%");
-
-//            AD_value = (ADC_value*3.3)/1024;
-//            sprintf(value, "%6.2f", AD_value); // convert to string
 //            LCDMoveCursor(1,0);
+//            num_temp = (int)(((float)OC1RS / (float)1023) * 100);
+//            sprintf(value, "%2d%%", num_temp);
+//            LCDPrintString(value);
+//
+//            LCDMoveCursor(1,7);
+//            num_temp = (int)(((float)OC2RS / (float)1023) * 100);
+//            sprintf(value, "%2d%%", num_temp);
 //            LCDPrintString(value);
 
 
+
         }
-		
+
 	return 0;
 }
 
@@ -210,7 +176,7 @@ void __attribute__((interrupt)) _CNInterrupt(void)
        if(PORTBbits.RB5 == 0){
            while(PORTBbits.RB5 == 0);
            state++;
-           if(state == 4){
+           if(state == 2){
                state = 0;
            }
        }
