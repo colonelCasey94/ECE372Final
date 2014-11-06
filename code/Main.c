@@ -46,14 +46,14 @@ volatile int count = 0;
 int main(void)
 {
 
-    TRISBbits.TRISB5 = 1; // setting up the push button
-    CNEN2bits.CN27IE = 1;
+    TRISAbits.TRISA4 = 1; // setting up the push button
+    CNEN1bits.CN0IE = 1;
     IFS1bits.CNIF = 0; // set flag low
     IEC1bits.CNIE = 1; // enable interrupt
 
         // UART1 Setup
-        RPINR18bits.U1RXR = 9;
-	RPOR4bits.RP8R = 3;
+        RPINR18bits.U1RXR = 5;
+	RPOR5bits.RP11R = 3;
         U1BRG  = BRGVAL;
 	U1MODE = 0x8000;
         U1STA  = 0x0440;
@@ -71,15 +71,15 @@ int main(void)
 
         /// ADC
 
-        int ADC_value;
+        int ADC_Front_Mid, ADC_Front_Right, ADC_Front_Left;
+        int ADC_Barcode;
         char value[8];
-        double AD_value;
 
-        AD1PCFG &= 0xFFDF;
+        AD1PCFG &= 0xFFF0;
         AD1CON2 = 0; // reference voltage
         AD1CON3 = 0x0101;  // sample conversion
         AD1CON1 = 0x20E4;  // sample conversion
-        AD1CHS = 5; // AN5 pin for reference
+        AD1CHS = 0; // AN0 pin for reference
         AD1CSSL = 0;
 
         IFS0bits.AD1IF = 0; // set flag low
@@ -91,7 +91,7 @@ int main(void)
         OC1CONbits.OCTSEL = 1;
         OC1R = PWM_Period;
         OC1RS = PWM_Period/2;
-        RPOR1bits.RP2R = 18;
+        RPOR2bits.RP4R = 18;
         RPOR5bits.RP10R = 18;
 //        TRISBbits.TRISB10 = 0;
 
@@ -110,33 +110,87 @@ int main(void)
 
 	LCDInitialize();
 
-        int num_temp = 0;
         char* color = "";
 
         printf("Working\n");
 
 	while(1)
 	{
+
+            AD1CHS = 0; // AN0 pin for reference
             while(IFS0bits.AD1IF == 0);
             IFS0bits.AD1IF = 0;
-            ADC_value = ADC1BUF0; // digital value
+            ADC_Front_Mid = ADC1BUF0; // digital value
 
-            sprintf(value, "%6d", ADC_value); // convert digital value to string for LCD
-            LCDMoveCursor(0,0);
-            LCDPrintString(value);
-            printf("%d\n", ADC_value);
-            if(ADC_value < 80){
+
+            AD1CHS = 1; // AN1 pin for reference
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Front_Left = ADC1BUF0;
+
+            AD1CHS = 2; // AN2 pin for reference
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Front_Right = ADC1BUF0;
+
+            AD1CHS = 3; // AN3 pin for reference
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Barcode = ADC1BUF0;
+
+//            sprintf(value, "%6d", ADC_Front_Mid); // convert digital value to string for LCD
+//            LCDMoveCursor(0,0);
+//            LCDPrintString(value);
+//            printf("%d\n", ADC_Front_Mid);
+
+            if(ADC_Front_Mid < 80){
                 color = "black";
             }
-            else if(ADC_value > 150 && ADC_value < 250){
+            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
                 color = "red";
             }
-            else if(ADC_value > 275){
+            else if(ADC_Front_Mid > 275){
+                color = "white";
+            }
+            LCDMoveCursor(0,6);
+            LCDPrintString(color);
+
+            if(ADC_Front_Right < 80){
+                color = "black";
+            }
+            else if(ADC_Front_Right > 150 && ADC_Front_Mid < 250){
+                color = "red";
+            }
+            else if(ADC_Front_Right > 275){
+                color = "white";
+            }
+            LCDMoveCursor(0,0);
+            LCDPrintString(color);
+
+            if(ADC_Front_Mid < 80){
+                color = "black";
+            }
+            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
+                color = "red";
+            }
+            else if(ADC_Front_Mid > 275){
+                color = "white";
+            }
+            LCDMoveCursor(0,11);
+            LCDPrintString(color);
+
+            if(ADC_Front_Mid < 80){
+                color = "black";
+            }
+            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
+                color = "red";
+            }
+            else if(ADC_Front_Mid > 275){
                 color = "white";
             }
             LCDMoveCursor(1,0);
             LCDPrintString(color);
-            color = "";
+            
 
 
 ///////////////////////////////////////////////////////////////////////////////
