@@ -72,6 +72,7 @@ int main(void)
         /// ADC
 
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
+        int frontBlackWhite = 100;
         int ADC_Barcode;
         char value[8];
 
@@ -168,66 +169,31 @@ int main(void)
             LCDMoveCursor(0,8);
             LCDPrintString(value);
 
-//            if(ADC_Front_Mid < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Mid > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(0,6);
-//            LCDPrintString(color);
-//
-//            if(ADC_Front_Right < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Right > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Right > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(0,0);
-//            LCDPrintString(color);
-//
-//            if(ADC_Front_Mid < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Mid > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(0,11);
-//            LCDPrintString(color);
-//
-//            if(ADC_Front_Mid < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Mid > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(1,0);
-//            LCDPrintString(color);
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
-//            switch(state){
-//                case 0: // forward state
-//
-//                case 1:  // IDLE state
-//                    OC1RS = 0;
-//                    OC2RS = 0;
-//                    break;
-//
-//            }
+            if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
+               //if on line...
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 18;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 19;
+                RPOR4bits.RP9R = 20;
+
+                OC1RS = PWM_Period;
+                OC2RS = PWM_Period;
+
+            } else {
+                 //OC1 RIGHT
+                RPOR5bits.RP10R = 20;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 20;
+                RPOR4bits.RP9R = 20;
+
+                OC2RS = OC1RS = PWM_Period;
+            }
 ///////////////////////////////////////////////////////////////////////////////
         }
 
