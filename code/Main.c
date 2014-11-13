@@ -71,27 +71,32 @@ int main(void)
 
         /// ADC
 
-        int ADC_Front_Mid, ADC_Front_Right, ADC_Front_Left;
+        int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
         int ADC_Barcode;
         char value[8];
 
-        AD1PCFG &= 0xFFF0;
+//        AD1PCFG &= 0xFFC3;
+        AD1PCFGbits.PCFG2 = 0;
+        AD1PCFGbits.PCFG3 = 0;
+        AD1PCFGbits.PCFG4 = 0;
+       // AD1PCFGbits.PCFG5 = 0;
         AD1CON2 = 0; // reference voltage
         AD1CON3 = 0x0101;  // sample conversion
         AD1CON1 = 0x20E4;  // sample conversion
-        AD1CHS = 0; // AN0 pin for reference
+//        AD1CHS = 5; // AN0 pin for reference
         AD1CSSL = 0;
 
         IFS0bits.AD1IF = 0; // set flag low
         AD1CON1bits.ADON = 1; // turn on ADC
 
-        /// PWM
+        // PWM
         int PWM_Period = 1023;
         OC1CON = 0x000E;
         OC1CONbits.OCTSEL = 1;
         OC1R = PWM_Period;
         OC1RS = PWM_Period/2;
-        RPOR2bits.RP4R = 18;
+        //RPOR2bits.RP4R = 18;
+        RPOR5bits.RP11R = 18;   ///// testing
         RPOR5bits.RP10R = 18;
 //        TRISBbits.TRISB10 = 0;
 
@@ -116,81 +121,101 @@ int main(void)
 
 	while(1)
 	{
-
-            AD1CHS = 0; // AN0 pin for reference
+            AD1CHS = 2; // AN2 pin for reference
+            DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
             IFS0bits.AD1IF = 0;
             ADC_Front_Mid = ADC1BUF0; // digital value
 
 
-            AD1CHS = 1; // AN1 pin for reference
+
+            AD1CHS = 3; // AN3 pin for reference
+            DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
             IFS0bits.AD1IF = 0;
             ADC_Front_Left = ADC1BUF0;
 
-            AD1CHS = 2; // AN2 pin for reference
+
+
+            AD1CHS = 4; // AN4 pin for reference
+            DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
             IFS0bits.AD1IF = 0;
             ADC_Front_Right = ADC1BUF0;
 
-            AD1CHS = 3; // AN3 pin for reference
-            while(IFS0bits.AD1IF == 0);
-            IFS0bits.AD1IF = 0;
-            ADC_Barcode = ADC1BUF0;
 
-//            sprintf(value, "%6d", ADC_Front_Mid); // convert digital value to string for LCD
-//            LCDMoveCursor(0,0);
+
+//            AD1CHS = 3; // AN3 pin for reference
+//            while(IFS0bits.AD1IF == 0);
+//            IFS0bits.AD1IF = 0;
+//            ADC_Barcode = ADC1BUF0;
+
+//            LCDMoveCursor(1,0);
+//            sprintf(value, "%d", ADC_Front_Mid);
 //            LCDPrintString(value);
-//            printf("%d\n", ADC_Front_Mid);
 
-            if(ADC_Front_Mid < 80){
-                color = "black";
-            }
-            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-                color = "red";
-            }
-            else if(ADC_Front_Mid > 275){
-                color = "white";
-            }
-            LCDMoveCursor(0,6);
-            LCDPrintString(color);
 
-            if(ADC_Front_Right < 80){
-                color = "black";
-            }
-            else if(ADC_Front_Right > 150 && ADC_Front_Mid < 250){
-                color = "red";
-            }
-            else if(ADC_Front_Right > 275){
-                color = "white";
-            }
+
+            sprintf(value, "%d",ADC_Front_Left); // convert digital value to string for LCD
             LCDMoveCursor(0,0);
-            LCDPrintString(color);
+            LCDPrintString(value);
 
-            if(ADC_Front_Mid < 80){
-                color = "black";
-            }
-            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-                color = "red";
-            }
-            else if(ADC_Front_Mid > 275){
-                color = "white";
-            }
-            LCDMoveCursor(0,11);
-            LCDPrintString(color);
+            sprintf(value, "%d",ADC_Front_Mid); // convert digital value to string for LCD
+            LCDMoveCursor(0,4);
+            LCDPrintString(value);
 
-            if(ADC_Front_Mid < 80){
-                color = "black";
-            }
-            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-                color = "red";
-            }
-            else if(ADC_Front_Mid > 275){
-                color = "white";
-            }
-            LCDMoveCursor(1,0);
-            LCDPrintString(color);
-            
+            sprintf(value, "%d",ADC_Front_Right); // convert digital value to string for LCD
+            LCDMoveCursor(0,8);
+            LCDPrintString(value);
+
+//            if(ADC_Front_Mid < 80){
+//                color = "black";
+//            }
+//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
+//                color = "red";
+//            }
+//            else if(ADC_Front_Mid > 275){
+//                color = "white";
+//            }
+//            LCDMoveCursor(0,6);
+//            LCDPrintString(color);
+//
+//            if(ADC_Front_Right < 80){
+//                color = "black";
+//            }
+//            else if(ADC_Front_Right > 150 && ADC_Front_Mid < 250){
+//                color = "red";
+//            }
+//            else if(ADC_Front_Right > 275){
+//                color = "white";
+//            }
+//            LCDMoveCursor(0,0);
+//            LCDPrintString(color);
+//
+//            if(ADC_Front_Mid < 80){
+//                color = "black";
+//            }
+//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
+//                color = "red";
+//            }
+//            else if(ADC_Front_Mid > 275){
+//                color = "white";
+//            }
+//            LCDMoveCursor(0,11);
+//            LCDPrintString(color);
+//
+//            if(ADC_Front_Mid < 80){
+//                color = "black";
+//            }
+//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
+//                color = "red";
+//            }
+//            else if(ADC_Front_Mid > 275){
+//                color = "white";
+//            }
+//            LCDMoveCursor(1,0);
+//            LCDPrintString(color);
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -204,19 +229,6 @@ int main(void)
 //
 //            }
 ///////////////////////////////////////////////////////////////////////////////
-
-//            LCDMoveCursor(1,0);
-//            num_temp = (int)(((float)OC1RS / (float)1023) * 100);
-//            sprintf(value, "%2d%%", num_temp);
-//            LCDPrintString(value);
-//
-//            LCDMoveCursor(1,7);
-//            num_temp = (int)(((float)OC2RS / (float)1023) * 100);
-//            sprintf(value, "%2d%%", num_temp);
-//            LCDPrintString(value);
-
-
-
         }
 
 	return 0;

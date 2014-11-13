@@ -203,7 +203,7 @@ void LCDInitialize(void) {
     //Entry Mode Set
     WriteLCD(0x06, LCD_WRITE_CONTROL, 40);
     //Display on
-    WriteLCD(0x0F, LCD_WRITE_CONTROL, 40);
+    WriteLCD(0x0C, LCD_WRITE_CONTROL, 40);
 //    //Clear Display
 //    WriteLCD(0x01, LCD_WRITE_CONTROL, 1500);
     // return home
@@ -235,11 +235,19 @@ void LCDClear(void) {
 //    unsigned char x : coordinate for LCD row (0 or 1)
 //    unsigned char y : coordinate for LCD column (0 to 7)
 
-void LCDMoveCursor(unsigned char x, unsigned char y) {
+void LCDMoveCursor(unsigned char row, unsigned char column) {
+    int position = column;
+    if (row == 1){
+        position |= 0x40;
+    }
+    position = position|0x80;
+    WriteLCD(position,LCD_WRITE_CONTROL,40);
 
-	// TODO: Write the propoer control instruction to move the cursor to the specified
-	// (x,y) coordinate. This operation should be performance as a single control
-	// control instruction, i.e. a single call the WriteLCD() function.
+//    if(row = 1)
+//        row = 4;
+//    int position = row+column;
+//
+//    WriteLCD((position & 0x8), 0, 40);
 
 }
 
@@ -272,7 +280,20 @@ void LCDPrintChar(char c) {
 //          characters if found.
 
 void LCDPrintString(const char* s) {
-
+    if(s == NULL){
+        return;
+    }
+    int i = 0;
+    while (s[i]!=NULL){
+        LCDPrintChar(s[i]);
+        i++;
+    }
+    while(i<8){
+        LCDPrintChar(' ');
+        i++;
+    }
 }
 
 // ******************************************************************************************* //
+
+
