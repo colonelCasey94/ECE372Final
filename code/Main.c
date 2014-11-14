@@ -40,8 +40,12 @@ _CONFIG2( IESO_OFF & SOSCSEL_SOSC & WUTSEL_LEG & FNOSC_PRIPLL & FCKSM_CSDCMD & O
 
 
 // ******************************************************************************************* //
+
+enum scanState{NOSCAN, WAIT, WHITE, READ, PRINT};
+
 volatile int state = 0;
 volatile int count = 0;
+
 
 int main(void)
 {
@@ -74,7 +78,10 @@ int main(void)
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
         int frontBlackWhite = 100;
         int ADC_Barcode;
+        int barcodeBlackRed = 100, barcodeRedWhite = 150, i = 0;
+        enum scanState currentScan = NOSCAN;
         char value[8];
+        char value1[5] = "    ";
 
 //        AD1PCFG &= 0xFFC3;
         AD1PCFGbits.PCFG2 = 0;
@@ -122,6 +129,10 @@ int main(void)
 
 	while(1)
 	{
+///////////////////////////////////////////////////////////////////////////////
+//              Scanning Front                                               //
+///////////////////////////////////////////////////////////////////////////////
+
             AD1CHS = 2; // AN2 pin for reference
             DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
@@ -145,17 +156,9 @@ int main(void)
             ADC_Front_Right = ADC1BUF0;
 
 
-
-//            AD1CHS = 3; // AN3 pin for reference
-//            while(IFS0bits.AD1IF == 0);
-//            IFS0bits.AD1IF = 0;
-//            ADC_Barcode = ADC1BUF0;
-
-//            LCDMoveCursor(1,0);
-//            sprintf(value, "%d", ADC_Front_Mid);
-//            LCDPrintString(value);
-
-
+///////////////////////////////////////////////////////////////////////////////
+//          Printing Front Values on top line                                //
+///////////////////////////////////////////////////////////////////////////////
 
             sprintf(value, "%d",ADC_Front_Left); // convert digital value to string for LCD
             LCDMoveCursor(0,0);
@@ -170,30 +173,135 @@ int main(void)
             LCDPrintString(value);
 
 ///////////////////////////////////////////////////////////////////////////////
-            if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
-               //if on line...
-                //OC1 RIGHT
-                RPOR5bits.RP10R = 18;
-                RPOR5bits.RP11R = 20;
+//               Following Line                                              //
+///////////////////////////////////////////////////////////////////////////////
+//            if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
+//               //if on line...
+//                //OC1 RIGHT
+//                RPOR5bits.RP10R = 18;
+//                RPOR5bits.RP11R = 20;
+//
+//                //OC2 LEFT
+//                RPOR4bits.RP8R = 19;
+//                RPOR4bits.RP9R = 20;
+//
+//                OC1RS = PWM_Period;
+//                OC2RS = PWM_Period;
+//
+//            } else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right > frontBlackWhite){
+//                //if too far right
+//                //OC1 RIGHT
+//                RPOR5bits.RP10R = 18;
+//                RPOR5bits.RP11R = 20;
+//
+//                //OC2 LEFT
+//                RPOR4bits.RP8R = 19;
+//                RPOR4bits.RP9R = 20;
+//
+//                //turn left
+//                OC1RS = PWM_Period;
+//                OC2RS = PWM_Period*.9;
+//                DelayUs(50000);
+//                DelayUs(50000);
+//
+//                //go straight to pause for possible correction onto line
+//                OC1RS = PWM_Period;
+//                OC2RS = PWM_Period;
+//                DelayUs(50000);
+//                DelayUs(50000);
+//
+//            } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+//                //if too far left
+//                //OC1 RIGHT
+//                RPOR5bits.RP10R = 18;
+//                RPOR5bits.RP11R = 20;
+//
+//                //OC2 LEFT
+//                RPOR4bits.RP8R = 19;
+//                RPOR4bits.RP9R = 20;
+//
+//                //turn right
+//                OC1RS = PWM_Period*.9;
+//                OC2RS = PWM_Period;
+//                DelayUs(50000);
+//                DelayUs(50000);
+//
+//                //go straight to pause for possible correction onto line
+//                OC1RS = PWM_Period;
+//                OC2RS = PWM_Period;
+//                DelayUs(50000);
+//                DelayUs(50000);
+//
+//            } else {
+//
+//                //all stop
+//                 //OC1 RIGHT
+//                RPOR5bits.RP10R = 20;
+//                RPOR5bits.RP11R = 20;
+//
+//                //OC2 LEFT
+//                RPOR4bits.RP8R = 20;
+//                RPOR4bits.RP9R = 20;
+//
+//                OC2RS = 0;
+//                OC1RS = 0;
+//            }
+///////////////////////////////////////////////////////////////////////////////
+//              BARCODE READER                                               //
+///////////////////////////////////////////////////////////////////////////////
 
-                //OC2 LEFT
-                RPOR4bits.RP8R = 19;
-                RPOR4bits.RP9R = 20;
+             AD1CHS = 2; // AN2 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Barcode = ADC1BUF0; // digital value
 
-                OC1RS = PWM_Period;
-                OC2RS = PWM_Period;
-
-            } else {
-                 //OC1 RIGHT
-                RPOR5bits.RP10R = 20;
-                RPOR5bits.RP11R = 20;
-
-                //OC2 LEFT
-                RPOR4bits.RP8R = 20;
-                RPOR4bits.RP9R = 20;
-
-                OC2RS = OC1RS = PWM_Period;
+            switch(currentScan){
+                case NOSCAN:
+                    if (ADC_Barcode < barcodeBlackRed){
+                        currentScan = WAIT;
+                        i = 0;
+                         LCDMoveCursor(1,0);
+                LCDPrintString("scan");
+                    }
+                    break;
+                case WAIT:
+                    if (ADC_Barcode > barcodeRedWhite){
+                        currentScan = WHITE;
+                         LCDMoveCursor(1,0);
+                LCDPrintString("White");
+                    }
+                    break;
+                case WHITE:
+                    if (i == 4){
+                        currentScan = PRINT;
+                    } else if (ADC_Barcode < barcodeRedWhite){
+                        currentScan = READ;
+                        LCDMoveCursor(1,0);
+                        LCDPrintString("read");
+                        DelayUs(50000);
+                        DelayUs(50000);
+                    }
+                    break;
+                case READ:
+                    if (ADC_Barcode < barcodeBlackRed){
+                        value1[i] = 'B';
+                        i++;
+                        currentScan = WAIT;
+                    } else if (ADC_Barcode < barcodeRedWhite){
+                        value1[i] = 'R';
+                        i++;
+                        currentScan = WAIT;
+                    } else {
+                        currentScan = WHITE;
+                    }
+                    break;
+                case PRINT:
+                     LCDMoveCursor(1,0);
+                LCDPrintString(value1);
+                    break;
             }
+
 ///////////////////////////////////////////////////////////////////////////////
         }
 
