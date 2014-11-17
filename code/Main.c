@@ -98,7 +98,7 @@ int main(void)
         AD1CON1bits.ADON = 1; // turn on ADC
 
         // PWM
-        int PWM_Period_RIGHT = 1023;
+        float PWM_Period_RIGHT = 1023;
         OC1CON = 0x000E;
         OC1CONbits.OCTSEL = 1;
         OC1R = PWM_Period_RIGHT;
@@ -108,7 +108,7 @@ int main(void)
         RPOR5bits.RP10R = 18;
 //        TRISBbits.TRISB10 = 0;
 
-        int PWM_Period_LEFT = 1023;
+        float PWM_Period_LEFT = 1023;
         OC2CON = 0x000E;
         OC2CONbits.OCTSEL = 1;
         OC2R = PWM_Period_LEFT;
@@ -157,6 +157,20 @@ int main(void)
             ADC_Front_Right = ADC1BUF0;
 
 
+            int ADC_BatRate = 0;
+            float float_BatRate = 0.0;
+
+            AD1CHS = 5; // AN2 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_BatRate = ADC1BUF0; // digital value
+            float_BatRate = 1.4 - (ADC_BatRate*3.3/1023)/3.0; //y = -(1/3)x + 1.4
+
+
+            float PWM_Period_RIGHT = PWM_Period_RIGHT*float_BatRate;
+            float PWM_Period_LEFT = PWM_Period_LEFT*float_BatRate;
+
 ///////////////////////////////////////////////////////////////////////////////
 //          Printing Front Values on top line                                //
 ///////////////////////////////////////////////////////////////////////////////
@@ -202,8 +216,7 @@ int main(void)
 
                 //turn left
                 OC1RS = PWM_Period_RIGHT;
-                OC2RS = 700;
-                DelayUs(50000);
+                OC2RS = PWM_Period_LEFT*6/10;
 
                 //go straight to pause for possible correction onto line
 //                OC1RS = PWM_Period_RIGHT;
@@ -222,9 +235,8 @@ int main(void)
                 RPOR4bits.RP9R = 20;
 
                 //turn right
-                OC1RS = 700;
+                OC1RS = PWM_Period_RIGHT*6/10;
                 OC2RS = PWM_Period_LEFT;
-                DelayUs(50000);
 
 //                //go straight to pause for possible correction onto line
 //                OC1RS = PWM_Period_RIGHT;
@@ -245,11 +257,7 @@ int main(void)
                 //turn left
                 OC1RS = PWM_Period_RIGHT;
                 OC2RS = PWM_Period_LEFT;
-                DelayUs(50000);
-//                DelayUs(50000);
-//                DelayUs(50000);
-//                DelayUs(50000);
-//                DelayUs(50000);
+                DelayUs(60000);
 
                 //go straight to pause for possible correction onto line
 //                OC1RS = PWM_Period_RIGHT;
@@ -270,7 +278,7 @@ int main(void)
                 //turn right
                 OC1RS = PWM_Period_RIGHT;
                 OC2RS = PWM_Period_LEFT;
-                DelayUs(50000);
+                DelayUs(60000);
 
 //                //go straight to pause for possible correction onto line
 //                OC1RS = PWM_Period_RIGHT;
@@ -279,7 +287,7 @@ int main(void)
 //                DelayUs(50000);
 
             } else if(ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
-            RPOR5bits.RP10R = 20;
+                RPOR5bits.RP10R = 20;
                 RPOR5bits.RP11R = 18;
 
                 //OC2 LEFT
@@ -287,38 +295,9 @@ int main(void)
                 RPOR4bits.RP9R = 20;
 
                 //turn right
-                OC1RS = PWM_Period_RIGHT;
-                OC2RS = PWM_Period_LEFT;
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
-                DelayUs(50000);
+                OC1RS = PWM_Period_RIGHT*8/10;
+                OC2RS = PWM_Period_LEFT*8/10;
+                while(ADC_Front_Left < frontBlackWhite || ADC_Front_Mid > frontBlackWhite || ADC_Front_Right < frontBlackWhite);
             } else {
 
                 //all stop
@@ -337,11 +316,11 @@ int main(void)
 //              BARCODE READER                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
-            AD1CHS = 5; // AN2 pin for reference
-            DelayUs(2000);
-            while(IFS0bits.AD1IF == 0);
-            IFS0bits.AD1IF = 0;
-            ADC_Barcode = ADC1BUF0; // digital value
+//            AD1CHS = 5; // AN2 pin for reference
+//            DelayUs(2000);
+//            while(IFS0bits.AD1IF == 0);
+//            IFS0bits.AD1IF = 0;
+//            ADC_Barcode = ADC1BUF0; // digital value
 
             switch(currentScan){
                 case NOSCAN:
