@@ -76,7 +76,7 @@ int main(void)
         /// ADC
 
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
-        int frontBlackWhite = 100;
+        int frontBlackWhite = 150;
         int ADC_Barcode;
         int barcodeBlackRed = 100, barcodeRedWhite = 150, i = 0;
         enum scanState currentScan = NOSCAN;
@@ -98,27 +98,28 @@ int main(void)
         AD1CON1bits.ADON = 1; // turn on ADC
 
         // PWM
-        int PWM_Period = 1023;
+        int PWM_Period_RIGHT = 1023;
         OC1CON = 0x000E;
         OC1CONbits.OCTSEL = 1;
-        OC1R = PWM_Period;
-        OC1RS = PWM_Period/2;
+        OC1R = PWM_Period_RIGHT;
+        OC1RS = PWM_Period_RIGHT/2;
         //RPOR2bits.RP4R = 18;
         RPOR5bits.RP11R = 18;   ///// testing
         RPOR5bits.RP10R = 18;
 //        TRISBbits.TRISB10 = 0;
 
+        int PWM_Period_LEFT = 1023;
         OC2CON = 0x000E;
         OC2CONbits.OCTSEL = 1;
-        OC2R = PWM_Period;
-        OC2RS = PWM_Period/2;
+        OC2R = PWM_Period_LEFT;
+        OC2RS = PWM_Period_LEFT/2;
         RPOR4bits.RP8R = 19;
         RPOR4bits.RP9R = 19;
 //        TRISBbits.TRISB9 = 0;
 
         OC3CON = 0x000E;
         OC3CONbits.OCTSEL = 1;
-        OC3R = PWM_Period;
+        OC3R = 0;
         OC3RS = 0;
 
 	LCDInitialize();
@@ -186,10 +187,10 @@ int main(void)
                 RPOR4bits.RP8R = 19;
                 RPOR4bits.RP9R = 20;
 
-                OC1RS = PWM_Period;
-                OC2RS = PWM_Period;
+                OC1RS = PWM_Period_RIGHT;
+                OC2RS = PWM_Period_LEFT;
 
-            } else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right > frontBlackWhite){
+            } else if (ADC_Front_Right > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Left < frontBlackWhite){
                 //if too far right
                 //OC1 RIGHT
                 RPOR5bits.RP10R = 18;
@@ -200,16 +201,15 @@ int main(void)
                 RPOR4bits.RP9R = 20;
 
                 //turn left
-                OC1RS = PWM_Period;
-                OC2RS = PWM_Period*.9;
-                DelayUs(50000);
+                OC1RS = PWM_Period_RIGHT;
+                OC2RS = 700;
                 DelayUs(50000);
 
                 //go straight to pause for possible correction onto line
-                OC1RS = PWM_Period;
-                OC2RS = PWM_Period;
-                DelayUs(50000);
-                DelayUs(50000);
+//                OC1RS = PWM_Period_RIGHT;
+//                OC2RS = PWM_Period_LEFT;
+//                DelayUs(50000);
+//                DelayUs(50000);
 
             } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
                 //if too far left
@@ -222,17 +222,103 @@ int main(void)
                 RPOR4bits.RP9R = 20;
 
                 //turn right
-                OC1RS = PWM_Period*.9;
-                OC2RS = PWM_Period;
+                OC1RS = 700;
+                OC2RS = PWM_Period_LEFT;
                 DelayUs(50000);
+
+//                //go straight to pause for possible correction onto line
+//                OC1RS = PWM_Period_RIGHT;
+//                OC2RS = PWM_Period_LEFT;
+//                DelayUs(50000);
+//                DelayUs(50000);
+
+            } else if (ADC_Front_Right > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Left < frontBlackWhite){
+                //if way too far right
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 18;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 20;
+                RPOR4bits.RP9R = 19;
+
+                //turn left
+                OC1RS = PWM_Period_RIGHT;
+                OC2RS = PWM_Period_LEFT;
                 DelayUs(50000);
+//                DelayUs(50000);
+//                DelayUs(50000);
+//                DelayUs(50000);
+//                DelayUs(50000);
 
                 //go straight to pause for possible correction onto line
-                OC1RS = PWM_Period;
-                OC2RS = PWM_Period;
-                DelayUs(50000);
+//                OC1RS = PWM_Period_RIGHT;
+//                OC2RS = PWM_Period_LEFT;
+//                DelayUs(50000);
+//                DelayUs(50000);
+
+            } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+                //if way too far left
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 20;
+                RPOR5bits.RP11R = 18;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 19;
+                RPOR4bits.RP9R = 20;
+
+                //turn right
+                OC1RS = PWM_Period_RIGHT;
+                OC2RS = PWM_Period_LEFT;
                 DelayUs(50000);
 
+//                //go straight to pause for possible correction onto line
+//                OC1RS = PWM_Period_RIGHT;
+//                OC2RS = PWM_Period_LEFT;
+//                DelayUs(50000);
+//                DelayUs(50000);
+
+            } else if(ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+            RPOR5bits.RP10R = 20;
+                RPOR5bits.RP11R = 18;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 19;
+                RPOR4bits.RP9R = 20;
+
+                //turn right
+                OC1RS = PWM_Period_RIGHT;
+                OC2RS = PWM_Period_LEFT;
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
+                DelayUs(50000);
             } else {
 
                 //all stop
