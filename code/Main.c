@@ -175,82 +175,83 @@ int main(void)
 ///////////////////////////////////////////////////////////////////////////////
 //               Following Line                                              //
 ///////////////////////////////////////////////////////////////////////////////
-//            if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
-//               //if on line...
-//                //OC1 RIGHT
-//                RPOR5bits.RP10R = 18;
-//                RPOR5bits.RP11R = 20;
-//
-//                //OC2 LEFT
-//                RPOR4bits.RP8R = 19;
-//                RPOR4bits.RP9R = 20;
-//
-//                OC1RS = PWM_Period;
-//                OC2RS = PWM_Period;
-//
-//            } else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right > frontBlackWhite){
-//                //if too far right
-//                //OC1 RIGHT
-//                RPOR5bits.RP10R = 18;
-//                RPOR5bits.RP11R = 20;
-//
-//                //OC2 LEFT
-//                RPOR4bits.RP8R = 19;
-//                RPOR4bits.RP9R = 20;
-//
-//                //turn left
-//                OC1RS = PWM_Period;
-//                OC2RS = PWM_Period*.9;
-//                DelayUs(50000);
-//                DelayUs(50000);
-//
-//                //go straight to pause for possible correction onto line
-//                OC1RS = PWM_Period;
-//                OC2RS = PWM_Period;
-//                DelayUs(50000);
-//                DelayUs(50000);
-//
-//            } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
-//                //if too far left
-//                //OC1 RIGHT
-//                RPOR5bits.RP10R = 18;
-//                RPOR5bits.RP11R = 20;
-//
-//                //OC2 LEFT
-//                RPOR4bits.RP8R = 19;
-//                RPOR4bits.RP9R = 20;
-//
-//                //turn right
-//                OC1RS = PWM_Period*.9;
-//                OC2RS = PWM_Period;
-//                DelayUs(50000);
-//                DelayUs(50000);
-//
-//                //go straight to pause for possible correction onto line
-//                OC1RS = PWM_Period;
-//                OC2RS = PWM_Period;
-//                DelayUs(50000);
-//                DelayUs(50000);
-//
-//            } else {
-//
-//                //all stop
-//                 //OC1 RIGHT
-//                RPOR5bits.RP10R = 20;
-//                RPOR5bits.RP11R = 20;
-//
-//                //OC2 LEFT
-//                RPOR4bits.RP8R = 20;
-//                RPOR4bits.RP9R = 20;
-//
-//                OC2RS = 0;
-//                OC1RS = 0;
-//            }
+
+           if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
+                //if on line...
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 18;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 19;
+                RPOR4bits.RP9R = 20;
+
+                OC1RS = PWM_Period;
+                OC2RS = PWM_Period;
+
+            } else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right > frontBlackWhite){
+                //if too far right
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 18;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 19;
+                RPOR4bits.RP9R = 20;
+
+                //turn left
+                OC1RS = PWM_Period;
+                OC2RS = PWM_Period*.9;
+                DelayUs(50000);
+                DelayUs(50000);
+
+                //go straight to pause for possible correction onto line
+                OC1RS = PWM_Period;
+                OC2RS = PWM_Period;
+                DelayUs(50000);
+                DelayUs(50000);
+
+            } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+                //if too far left
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 18;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 19;
+                RPOR4bits.RP9R = 20;
+
+                //turn right
+                OC1RS = PWM_Period*.9;
+                OC2RS = PWM_Period;
+                DelayUs(50000);
+                DelayUs(50000);
+
+                //go straight to pause for possible correction onto line
+                OC1RS = PWM_Period;
+                OC2RS = PWM_Period;
+                DelayUs(50000);
+                DelayUs(50000);
+
+            } else {
+
+                //all stop
+                //OC1 RIGHT
+                RPOR5bits.RP10R = 20;
+                RPOR5bits.RP11R = 20;
+
+                //OC2 LEFT
+                RPOR4bits.RP8R = 20;
+                RPOR4bits.RP9R = 20;
+
+                OC2RS = 0;
+                OC1RS = 0;
+            }
 ///////////////////////////////////////////////////////////////////////////////
 //              BARCODE READER                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
-             AD1CHS = 2; // AN2 pin for reference
+            AD1CHS = 5; // AN2 pin for reference
             DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
             IFS0bits.AD1IF = 0;
