@@ -40,11 +40,18 @@ _CONFIG2( IESO_OFF & SOSCSEL_SOSC & WUTSEL_LEG & FNOSC_PRIPLL & FCKSM_CSDCMD & O
 
 
 // ******************************************************************************************* //
+
+enum scanState{NOSCAN, WAIT, WHITE, READ, PRINT};
+enum roboState{FIND, FOLLOW, TURNAROUND};
+
 volatile int state = 0;
 volatile int count = 0;
 
+
 int main(void)
 {
+    enum roboState roboState = FIND;
+    int blackLineCounter = 0;
 
     TRISAbits.TRISA4 = 1; // setting up the push button
     CNEN1bits.CN0IE = 1;
@@ -72,8 +79,12 @@ int main(void)
         /// ADC
 
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
+        int frontBlackWhite = 150;
         int ADC_Barcode;
+        int barcodeBlackRed = 100, barcodeRedWhite = 150, i = 0;
+        enum scanState currentScan = NOSCAN;
         char value[8];
+        char value1[5] = "    ";
 
 //        AD1PCFG &= 0xFFC3;
         AD1PCFGbits.PCFG2 = 0;
@@ -90,37 +101,43 @@ int main(void)
         AD1CON1bits.ADON = 1; // turn on ADC
 
         // PWM
-        int PWM_Period = 1023;
+        float PWM_Period_RIGHT = 1023;
         OC1CON = 0x000E;
         OC1CONbits.OCTSEL = 1;
-        OC1R = PWM_Period;
-        OC1RS = PWM_Period/2;
+        OC1R = PWM_Period_RIGHT;
+        OC1RS = PWM_Period_RIGHT/2;
         //RPOR2bits.RP4R = 18;
         RPOR5bits.RP11R = 18;   ///// testing
         RPOR5bits.RP10R = 18;
 //        TRISBbits.TRISB10 = 0;
 
+        float PWM_Period_LEFT = 1023;
         OC2CON = 0x000E;
         OC2CONbits.OCTSEL = 1;
-        OC2R = PWM_Period;
-        OC2RS = PWM_Period/2;
+        OC2R = PWM_Period_LEFT;
+        OC2RS = PWM_Period_LEFT/2;
         RPOR4bits.RP8R = 19;
         RPOR4bits.RP9R = 19;
 //        TRISBbits.TRISB9 = 0;
 
         OC3CON = 0x000E;
         OC3CONbits.OCTSEL = 1;
-        OC3R = PWM_Period;
+        OC3R = 0;
         OC3RS = 0;
 
 	LCDInitialize();
+        int Long_Delay = 60000;
 
         char* color = "";
 
-        printf("Working\n");
+        int flag = 1;
 
 	while(1)
 	{
+///////////////////////////////////////////////////////////////////////////////
+//              Scanning Front                                               //
+///////////////////////////////////////////////////////////////////////////////
+
             AD1CHS = 2; // AN2 pin for reference
             DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
@@ -144,17 +161,27 @@ int main(void)
             ADC_Front_Right = ADC1BUF0;
 
 
+            int ADC_BatRate = 0;
+            float float_BatRate = 0.0;
 
-//            AD1CHS = 3; // AN3 pin for reference
-//            while(IFS0bits.AD1IF == 0);
-//            IFS0bits.AD1IF = 0;
-//            ADC_Barcode = ADC1BUF0;
-
-//            LCDMoveCursor(1,0);
-//            sprintf(value, "%d", ADC_Front_Mid);
-//            LCDPrintString(value);
+            AD1CHS = 5; // AN5 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_BatRate = ADC1BUF0; // digital value
+           // float_BatRate = 1.4 - (ADC_BatRate*3.3/1023); //y = -(1/3)x + 1.4
 
 
+           PWM_Period_RIGHT = ADC_BatRate;//1023 * (1 - (1.4 - (ADC_BatRate*3.3/1023)*(1/3)));
+           PWM_Period_LEFT = ADC_BatRate;//1023 * (1 - (1.4 - (ADC_BatRate*3.3/1023)*(1/3)));
+
+
+//            float PWM_Period_RIGHT = PWM_Period_RIGHT*float_BatRate;
+//            float PWM_Period_LEFT = PWM_Period_LEFT*float_BatRate;
+
+///////////////////////////////////////////////////////////////////////////////
+//          Printing Front Values on top line                                //
+///////////////////////////////////////////////////////////////////////////////
 
             sprintf(value, "%d",ADC_Front_Left); // convert digital value to string for LCD
             LCDMoveCursor(0,0);
@@ -168,66 +195,252 @@ int main(void)
             LCDMoveCursor(0,8);
             LCDPrintString(value);
 
-//            if(ADC_Front_Mid < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Mid > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(0,6);
-//            LCDPrintString(color);
-//
-//            if(ADC_Front_Right < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Right > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Right > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(0,0);
-//            LCDPrintString(color);
-//
-//            if(ADC_Front_Mid < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Mid > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(0,11);
-//            LCDPrintString(color);
-//
-//            if(ADC_Front_Mid < 80){
-//                color = "black";
-//            }
-//            else if(ADC_Front_Mid > 150 && ADC_Front_Mid < 250){
-//                color = "red";
-//            }
-//            else if(ADC_Front_Mid > 275){
-//                color = "white";
-//            }
-//            LCDMoveCursor(1,0);
-//            LCDPrintString(color);
 
-
-
+            switch(roboState){
+                case FIND:
 ///////////////////////////////////////////////////////////////////////////////
-//            switch(state){
-//                case 0: // forward state
-//
-//                case 1:  // IDLE state
-//                    OC1RS = 0;
-//                    OC2RS = 0;
-//                    break;
-//
-//            }
+//               Following Line                                              //
+///////////////////////////////////////////////////////////////////////////////
+                    blackLineCounter = 0;
+                    roboState = FOLLOW;
+                break;
+
+                case FOLLOW:
+///////////////////////////////////////////////////////////////////////////////
+//               Following Line                                              //
+///////////////////////////////////////////////////////////////////////////////
+
+                   if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
+                       flag = 1;
+                        //if on line...
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        OC1RS = PWM_Period_RIGHT;
+                        OC2RS = PWM_Period_LEFT;
+
+                    } else if (ADC_Front_Right > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Left < frontBlackWhite){
+                        flag =1;
+                        //if too far right
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        //turn left
+                        OC1RS = PWM_Period_RIGHT;
+                        OC2RS = PWM_Period_LEFT*6/10;
+
+
+                    } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+                        flag = 1;
+                        //if too far left
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        //turn right
+                        OC1RS = PWM_Period_RIGHT*6/10;
+                        OC2RS = PWM_Period_LEFT;
+
+
+                    } else if (ADC_Front_Right > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Left < frontBlackWhite){
+                        flag = 1;
+                        //if way too far right
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 20;
+                        RPOR4bits.RP9R = 19;
+
+                        //turn left
+                        OC1RS = PWM_Period_RIGHT;
+                        OC2RS = PWM_Period_LEFT+100;
+                        //DelayUs(20000);
+                        DelayUs(Long_Delay);
+
+                    } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+                        flag = 1;
+                        //if way too far left
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 20;
+                        RPOR5bits.RP11R = 18;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        //turn right
+                        OC1RS = PWM_Period_RIGHT+100;
+                        OC2RS = PWM_Period_LEFT;
+                        //DelayUs(20000);
+                        DelayUs(Long_Delay);
+
+                    }  else if (blackLineCounter > 1) {
+
+                        roboState = TURNAROUND;
+
+                    }else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite) {
+
+                        //finds all black
+                        blackLineCounter++;
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        //turn right
+                        OC1RS = PWM_Period_RIGHT;
+                        OC2RS = PWM_Period_LEFT;
+                        while(ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
+                            AD1CHS = 2; // AN2 pin for reference
+                            DelayUs(2000);
+                            while(IFS0bits.AD1IF == 0);
+                            IFS0bits.AD1IF = 0;
+                            ADC_Front_Mid = ADC1BUF0; // digital value
+
+
+
+                            AD1CHS = 3; // AN3 pin for reference
+                            DelayUs(2000);
+                            while(IFS0bits.AD1IF == 0);
+                            IFS0bits.AD1IF = 0;
+                            ADC_Front_Left = ADC1BUF0;
+
+
+
+                            AD1CHS = 4; // AN4 pin for reference
+                            DelayUs(2000);
+                            while(IFS0bits.AD1IF == 0);
+                            IFS0bits.AD1IF = 0;
+                            ADC_Front_Right = ADC1BUF0;
+                        }
+                    } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right > frontBlackWhite && blackLineCounter >=3){
+
+                         RPOR5bits.RP10R = 20;
+                        RPOR5bits.RP11R = 18;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        OC2RS = 1023;
+                        OC1RS = 1023;
+                        DelayUs(50000);
+                            roboState = TURNAROUND;
+
+                    } else {
+
+                        //all stop
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 20;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 20;
+                        RPOR4bits.RP9R = 20;
+
+                        OC2RS = 0;
+                        OC1RS = 0;
+                    }
+
+                   break;
+                case TURNAROUND:
+///////////////////////////////////////////////////////////////////////////////
+//              turn around at end                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+                        //all stop
+                        //OC1 RIGHT
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 20;
+                        RPOR4bits.RP9R = 19;
+
+                        OC2RS = 600;
+                        OC1RS = 600;
+
+                        DelayUs(20000); // added for testing
+                        if (ADC_Front_Left < frontBlackWhite || ADC_Front_Mid < frontBlackWhite || ADC_Front_Right < frontBlackWhite){
+                            roboState = FIND;
+                        }
+                   break;
+            }
+///////////////////////////////////////////////////////////////////////////////
+//              BARCODE READER                                               //
+///////////////////////////////////////////////////////////////////////////////
+
+//            AD1CHS = 5; // AN2 pin for reference
+//            DelayUs(2000);
+//            while(IFS0bits.AD1IF == 0);
+//            IFS0bits.AD1IF = 0;
+//            ADC_Barcode = ADC1BUF0; // digital value
+
+            switch(currentScan){
+                case NOSCAN:
+                    if (ADC_Barcode < barcodeBlackRed){
+                        currentScan = WAIT;
+                        i = 0;
+                         LCDMoveCursor(1,0);
+                LCDPrintString("scan");
+                    }
+                    break;
+                case WAIT:
+                    if (ADC_Barcode > barcodeRedWhite){
+                        currentScan = WHITE;
+                         LCDMoveCursor(1,0);
+                LCDPrintString("White");
+                    }
+                    break;
+                case WHITE:
+                    if (i == 4){
+                        currentScan = PRINT;
+                    } else if (ADC_Barcode < barcodeRedWhite){
+                        currentScan = READ;
+                        LCDMoveCursor(1,0);
+                        LCDPrintString("read");
+                        DelayUs(50000);
+                        DelayUs(50000);
+                    }
+                    break;
+                case READ:
+                    if (ADC_Barcode < barcodeBlackRed){
+                        value1[i] = 'B';
+                        i++;
+                        currentScan = WAIT;
+                    } else if (ADC_Barcode < barcodeRedWhite){
+                        value1[i] = 'R';
+                        i++;
+                        currentScan = WAIT;
+                    } else {
+                        currentScan = WHITE;
+                    }
+                    break;
+                case PRINT:
+                     LCDMoveCursor(1,0);
+                LCDPrintString(value1);
+                    break;
+            }
+
 ///////////////////////////////////////////////////////////////////////////////
         }
 
@@ -238,13 +451,5 @@ int main(void)
 void __attribute__((interrupt)) _CNInterrupt(void)
 {
 	IFS1bits.CNIF = 0;
-
-       if(PORTBbits.RB5 == 0){
-           while(PORTBbits.RB5 == 0);
-           state++;
-           if(state == 2){
-               state = 0;
-           }
-       }
 }
 
