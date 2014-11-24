@@ -59,15 +59,15 @@ int main(void)
     IEC1bits.CNIE = 1; // enable interrupt
 
         // UART1 Setup
-        RPINR18bits.U1RXR = 5;
-	RPOR5bits.RP11R = 3;
-        U1BRG  = BRGVAL;
-	U1MODE = 0x8000;
-        U1STA  = 0x0440;
-	IFS0bits.U1RXIF = 0;
-
-        IFS1bits.CNIF = 0;
-        IEC1bits.CNIE = 1;
+//        RPINR18bits.U1RXR = 7;
+//	RPOR3bits.RP6R = 3;
+//        U1BRG  = BRGVAL;
+//	U1MODE = 0x8000;
+//        U1STA  = 0x0440;
+//	IFS0bits.U1RXIF = 0;
+//
+//        IFS1bits.CNIF = 0;
+//        IEC1bits.CNIE = 1;
 
 
         PR3 = 1032; // 0.1 second delay
