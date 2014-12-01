@@ -138,6 +138,12 @@ int main(void)
 //              Scanning Front                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
+            AD1CHS = 0; // AN0 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Barcode = ADC1BUF0;
+
             AD1CHS = 2; // AN2 pin for reference
             DelayUs(2000);
             while(IFS0bits.AD1IF == 0);
@@ -453,3 +459,91 @@ void __attribute__((interrupt)) _CNInterrupt(void)
 	IFS1bits.CNIF = 0;
 }
 
+
+
+
+ int ADC_UP, ADC_Side = 0;
+        int temp_UP, temp_LEFT, temp_RIGHT, temp_x, temp_y = 0;
+        printf("Working\n");
+
+	while(1)
+	{
+            temp_UP, temp_LEFT, temp_RIGHT, temp_x, temp_y = 0;
+
+//            AD1CHS = 5; // AN2 pin for reference
+//            DelayUs(2000);
+//            while(IFS0bits.AD1IF == 0);
+//            IFS0bits.AD1IF = 0;
+//            ADC_UP = ADC1BUF0; // digital value
+//            printf("%d\n", ADC_UP);
+
+
+            AD1CHS = 10; // AN2 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_UP = ADC1BUF0; // digital value
+
+            AD1CHS = 9; // AN2 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Side = ADC1BUF0; // digital value
+
+            printf("%d  %d              ", ADC_UP, ADC_Side);
+
+
+
+            if(ADC_Side > 510){
+                temp_LEFT = (ADC_Side - 512)*2;
+            }
+            if(ADC_Side < 500){
+                temp_RIGHT = 1023 - (ADC_Side * 2);
+            }
+
+            if(ADC_UP > 510){
+                temp_UP = (ADC_UP - 512)*2;
+            }
+            if(ADC_UP < 500){
+                temp_UP = 1023 - (ADC_UP * 2);
+            }
+
+            if(ADC_UP >= 510){
+//                //OC1 RIGHT
+//                RPOR5bits.RP10R = 18;
+//                RPOR5bits.RP11R = 20;
+//
+//                //OC2 LEFT
+//                RPOR4bits.RP8R = 19;
+//                RPOR4bits.RP9R = 20;
+                printf("    forwards        ");
+            }
+
+            else if(ADC_UP < 510){
+//                //OC1 RIGHT
+//                RPOR5bits.RP10R = 18;
+//                RPOR5bits.RP11R = 20;
+//
+//                //OC2 LEFT
+//                RPOR4bits.RP8R = 19;
+//                RPOR4bits.RP9R = 20;
+                printf("    backwards       ");
+            }
+
+            temp_x = temp_UP + temp_RIGHT;
+            if(temp_x > 1023){
+                temp_x = 1023;
+            }
+
+            temp_y = temp_UP + temp_LEFT;
+            if(temp_y > 1023){
+                temp_y = 1023;
+            }
+
+           // OC1RS = temp_x; // RIGHT
+           // OC2RS = temp_y;  // LEFT
+
+            //**********************************//
+            printf("%d      %d      \n", temp_x, temp_y);
+            //**********************************//
+        }
