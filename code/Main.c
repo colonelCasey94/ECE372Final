@@ -41,8 +41,9 @@ _CONFIG2( IESO_OFF & SOSCSEL_SOSC & WUTSEL_LEG & FNOSC_PRIPLL & FCKSM_CSDCMD & O
 
 // ******************************************************************************************* //
 
-enum scanState{NOSCAN, WAIT, WHITE, READ, PRINT};
+enum scanState{NOSCAN, WAIT, WHITE, READ, PRINT, PRINTWAIT};
 enum roboState{FIND, FOLLOW, TURNAROUND};
+enum lastSeen{RIGHT,LEFT,CENTER};
 
 volatile int state = 0;
 volatile int count = 0;
@@ -51,6 +52,7 @@ volatile int count = 0;
 int main(void)
 {
     enum roboState roboState = FIND;
+    enum lastSeen last = CENTER;
     int blackLineCounter = 0;
 
     TRISAbits.TRISA4 = 1; // setting up the push button
@@ -58,17 +60,25 @@ int main(void)
     IFS1bits.CNIF = 0; // set flag low
     IEC1bits.CNIE = 1; // enable interrupt
 
-        // UART1 Setup
-        RPINR18bits.U1RXR = 5;
-	RPOR5bits.RP11R = 3;
-        U1BRG  = BRGVAL;
-	U1MODE = 0x8000;
-        U1STA  = 0x0440;
-	IFS0bits.U1RXIF = 0;
+//        // UART1 Setup
+//        RPINR18bits.U1RXR = 5;
+//	RPOR5bits.RP11R = 3;
+//        U1BRG  = BRGVAL;
+//	U1MODE = 0x8000;
+//        U1STA  = 0x0440;
+//	IFS0bits.U1RXIF = 0;
+//
+//        IFS1bits.CNIF = 0;
+//        IEC1bits.CNIE = 1;
+//
+//
 
-        IFS1bits.CNIF = 0;
-        IEC1bits.CNIE = 1;
-
+    TMR1 = 0;
+    PR1 = 65000; // 57600
+    T1CON = 0x8030;
+    IFS0bits.T1IF = 0;
+//    IEC0bits.T1IE = 1;
+    T1CONbits.TON = 0;
 
         PR3 = 1032; // 0.1 second delay
 	TMR3 = 0;
@@ -81,16 +91,17 @@ int main(void)
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
         int frontBlackWhite = 150;
         int ADC_Barcode;
-        int barcodeBlackRed = 100, barcodeRedWhite = 150, i = 0;
+        int barcodeBlackRed = 150, barcodeRedWhite = 300, i = 0;
         enum scanState currentScan = NOSCAN;
         char value[8];
         char value1[5] = "    ";
 
 //        AD1PCFG &= 0xFFC3;
+        AD1PCFGbits.PCFG0 = 0;
         AD1PCFGbits.PCFG2 = 0;
         AD1PCFGbits.PCFG3 = 0;
         AD1PCFGbits.PCFG4 = 0;
-       // AD1PCFGbits.PCFG5 = 0;
+        AD1PCFGbits.PCFG5 = 0;
         AD1CON2 = 0; // reference voltage
         AD1CON3 = 0x0101;  // sample conversion
         AD1CON1 = 0x20E4;  // sample conversion
@@ -101,7 +112,7 @@ int main(void)
         AD1CON1bits.ADON = 1; // turn on ADC
 
         // PWM
-        float PWM_Period_RIGHT = 700;
+        float PWM_Period_RIGHT = 1023;
         OC1CON = 0x000E;
         OC1CONbits.OCTSEL = 1;
         OC1R = PWM_Period_RIGHT;
@@ -111,7 +122,7 @@ int main(void)
         RPOR5bits.RP10R = 18;
 //        TRISBbits.TRISB10 = 0;
 
-        float PWM_Period_LEFT = 700;
+        float PWM_Period_LEFT = 1023;
         OC2CON = 0x000E;
         OC2CONbits.OCTSEL = 1;
         OC2R = PWM_Period_LEFT;
@@ -126,8 +137,7 @@ int main(void)
         OC3RS = 0;
 
 	LCDInitialize();
-
-        char* color = "";
+        int Long_Delay = 60000;
 
         int flag = 1;
 
@@ -163,16 +173,16 @@ int main(void)
             int ADC_BatRate = 0;
             float float_BatRate = 0.0;
 
-//            AD1CHS = 5; // AN2 pin for reference
-//            DelayUs(2000);
-//            while(IFS0bits.AD1IF == 0);
-//            IFS0bits.AD1IF = 0;
-//            ADC_BatRate = ADC1BUF0; // digital value
-//            float_BatRate = 1.4 - (ADC_BatRate*3.3/1023)/3.0; //y = -(1/3)x + 1.4
-//
-//
-//            float PWM_Period_RIGHT = PWM_Period_RIGHT*float_BatRate;
-//            float PWM_Period_LEFT = PWM_Period_LEFT*float_BatRate;
+            AD1CHS = 5; // AN5 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_BatRate = ADC1BUF0; // digital value
+           // float_BatRate = 1.4 - (ADC_BatRate*3.3/1023); //y = -(1/3)x + 1.4
+
+
+           PWM_Period_RIGHT = ADC_BatRate;//1023 * (1 - (1.4 - (ADC_BatRate*3.3/1023)*(1/3)));
+           PWM_Period_LEFT = ADC_BatRate;//1023 * (1 - (1.4 - (ADC_BatRate*3.3/1023)*(1/3)));
 
 ///////////////////////////////////////////////////////////////////////////////
 //          Printing Front Values on top line                                //
@@ -198,6 +208,7 @@ int main(void)
 ///////////////////////////////////////////////////////////////////////////////
                     blackLineCounter = 0;
                     roboState = FOLLOW;
+                    currentScan = NOSCAN;
                 break;
 
                 case FOLLOW:
@@ -207,6 +218,7 @@ int main(void)
 
                    if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right >frontBlackWhite){
                        flag = 1;
+                       last = CENTER;
                         //if on line...
                         //OC1 RIGHT
                         RPOR5bits.RP10R = 18;
@@ -221,6 +233,7 @@ int main(void)
 
                     } else if (ADC_Front_Right > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Left < frontBlackWhite){
                         flag =1;
+                        last = RIGHT;
                         //if too far right
                         //OC1 RIGHT
                         RPOR5bits.RP10R = 18;
@@ -237,6 +250,7 @@ int main(void)
 
                     } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite){
                         flag = 1;
+                        last=LEFT;
                         //if too far left
                         //OC1 RIGHT
                         RPOR5bits.RP10R = 18;
@@ -253,6 +267,7 @@ int main(void)
 
                     } else if (ADC_Front_Right > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Left < frontBlackWhite){
                         flag = 1;
+                        last = RIGHT;
                         //if way too far right
                         //OC1 RIGHT
                         RPOR5bits.RP10R = 18;
@@ -265,10 +280,12 @@ int main(void)
                         //turn left
                         OC1RS = PWM_Period_RIGHT;
                         OC2RS = PWM_Period_LEFT+100;
-                        DelayUs(60000);
+                        //DelayUs(20000);
+//                        DelayUs(Long_Delay);
 
                     } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right < frontBlackWhite){
                         flag = 1;
+                        last = LEFT;
                         //if way too far left
                         //OC1 RIGHT
                         RPOR5bits.RP10R = 20;
@@ -281,14 +298,10 @@ int main(void)
                         //turn right
                         OC1RS = PWM_Period_RIGHT+100;
                         OC2RS = PWM_Period_LEFT;
-                        DelayUs(60000);
+                        //DelayUs(20000);
+//                        DelayUs(Long_Delay);
 
-                    }  else if (blackLineCounter > 1) {
-
-                        roboState = TURNAROUND;
-                        
                     }else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite) {
-
                         //finds all black
                         blackLineCounter++;
                         //OC1 RIGHT
@@ -325,7 +338,7 @@ int main(void)
                             IFS0bits.AD1IF = 0;
                             ADC_Front_Right = ADC1BUF0;
                         }
-                    } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right > frontBlackWhite && blackLineCounter >=3){
+                    } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right > frontBlackWhite && blackLineCounter >=2){
 
                          RPOR5bits.RP10R = 20;
                         RPOR5bits.RP11R = 18;
@@ -339,7 +352,33 @@ int main(void)
                         DelayUs(50000);
                             roboState = TURNAROUND;
 
-                    } else {
+                    } else if (last == RIGHT) {
+
+                        RPOR5bits.RP10R = 18;
+                        RPOR5bits.RP11R = 20;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 20;
+                        RPOR4bits.RP9R = 19;
+
+                        //turn right
+                        OC1RS = PWM_Period_RIGHT+100;
+                        OC2RS = PWM_Period_LEFT;
+                        
+                    }else if (last == LEFT) {
+
+                        RPOR5bits.RP10R = 20;
+                        RPOR5bits.RP11R = 18;
+
+                        //OC2 LEFT
+                        RPOR4bits.RP8R = 19;
+                        RPOR4bits.RP9R = 20;
+
+                        //turn right
+                        OC1RS = PWM_Period_RIGHT+100;
+                        OC2RS = PWM_Period_LEFT;
+                        
+                    }else {
 
                         //all stop
                         //OC1 RIGHT
@@ -359,7 +398,7 @@ int main(void)
 ///////////////////////////////////////////////////////////////////////////////
 //              turn around at end                                           //
 ///////////////////////////////////////////////////////////////////////////////
-                    
+
                         //all stop
                         //OC1 RIGHT
                         RPOR5bits.RP10R = 18;
@@ -369,9 +408,17 @@ int main(void)
                         RPOR4bits.RP8R = 20;
                         RPOR4bits.RP9R = 19;
 
-                        OC2RS = 600;
-                        OC1RS = 600;
-                        if (ADC_Front_Left < frontBlackWhite || ADC_Front_Mid < frontBlackWhite || ADC_Front_Right < frontBlackWhite){
+                        OC2RS = 700;
+                        OC1RS = 700;
+
+                        if (T1CONbits.TON == 0){
+                            TMR1 = 0;
+                            T1CONbits.TON = 1;
+                        }
+
+                        if ((ADC_Front_Left < frontBlackWhite || ADC_Front_Mid < frontBlackWhite || ADC_Front_Right < frontBlackWhite)&&!TMR3<57600){
+                            T1CONbits.TON = 0;
+                            TMR1 = 0;
                             roboState = FIND;
                         }
                    break;
@@ -380,32 +427,45 @@ int main(void)
 //              BARCODE READER                                               //
 ///////////////////////////////////////////////////////////////////////////////
 
-//            AD1CHS = 5; // AN2 pin for reference
-//            DelayUs(2000);
-//            while(IFS0bits.AD1IF == 0);
-//            IFS0bits.AD1IF = 0;
-//            ADC_Barcode = ADC1BUF0; // digital value
+            AD1CHS = 0; // AN2 pin for reference
+            DelayUs(2000);
+            while(IFS0bits.AD1IF == 0);
+            IFS0bits.AD1IF = 0;
+            ADC_Barcode = ADC1BUF0; // digital value
+
+            sprintf(value, "%d",ADC_Barcode); // convert digital value to string for LCD
+            LCDMoveCursor(0,12);
+            LCDPrintString(value);
 
             switch(currentScan){
                 case NOSCAN:
+                    LCDClear();
                     if (ADC_Barcode < barcodeBlackRed){
                         currentScan = WAIT;
                         i = 0;
                          LCDMoveCursor(1,0);
-                LCDPrintString("scan");
+                         LCDPrintString("scan");
                     }
                     break;
                 case WAIT:
                     if (ADC_Barcode > barcodeRedWhite){
+                        TMR1=0;
+                        T1CONbits.TON = 1;
                         currentScan = WHITE;
                          LCDMoveCursor(1,0);
                 LCDPrintString("White");
                     }
                     break;
                 case WHITE:
-                    if (i == 4){
+                    if(IFS0bits.T1IF == 1){
+                        IFS0bits.T1IF = 0;
+                        currentScan = NOSCAN;
+                        T1CONbits.TON = 0;
+                    } else if (i == 4){
                         currentScan = PRINT;
                     } else if (ADC_Barcode < barcodeRedWhite){
+                        TMR1=0;
+                        T1CONbits.TON = 0;
                         currentScan = READ;
                         LCDMoveCursor(1,0);
                         LCDPrintString("read");
@@ -429,7 +489,20 @@ int main(void)
                 case PRINT:
                      LCDMoveCursor(1,0);
                 LCDPrintString(value1);
+                i = 0;
+                TMR1 = 0;
+                PR1 = 0xFFFF;
+                IFS0bits.T1IF = 0;
+                T1CONbits.TON = 1;
+                currentScan = PRINTWAIT;
                     break;
+                case PRINTWAIT:
+                    if(IFS0bits.T1IF == 1){
+                        IFS0bits.T1IF = 0;
+                        T1CONbits.TON = 0;
+                        //PR1 = PR1 / 4;
+                        currentScan = NOSCAN;
+                    }
             }
 
 ///////////////////////////////////////////////////////////////////////////////
