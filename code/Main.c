@@ -125,7 +125,7 @@ int main(void)
         OC3R = 0;
         OC3RS = 0;
 
-	LCDInitialize();
+//	LCDInitialize();
         int Long_Delay = 60000;
 
         char* color = "";
@@ -454,11 +454,13 @@ int main(void)
 
         int ADC_UP, ADC_Side = 0;
         int temp_UP, temp_LEFT, temp_RIGHT, temp_x, temp_y = 0;
-        printf("Working\n");
 
 	while(1)
 	{
-            temp_UP, temp_LEFT, temp_RIGHT, temp_x, temp_y = 0;
+            AD1PCFGbits.PCFG10 = 0;
+            AD1PCFGbits.PCFG9 = 0;
+            
+            temp_UP = 0, temp_LEFT = 0, temp_RIGHT = 0, temp_x = 0, temp_y = 0;
 
 //            AD1CHS = 5; // AN2 pin for reference
 //            DelayUs(2000);
@@ -484,7 +486,7 @@ int main(void)
 
 
             if(ADC_Side > 510){
-                temp_LEFT = (ADC_Side - 512)*2;
+                temp_LEFT = (ADC_Side - 512)*2 - 175;
                 temp_RIGHT = 0;
             }
             if(ADC_Side < 500){
@@ -511,12 +513,12 @@ int main(void)
 
             else if(ADC_UP < 510){
                 //OC1 RIGHT
-                RPOR5bits.RP10R = 18;
-                RPOR5bits.RP11R = 20;
+                RPOR5bits.RP10R = 20;
+                RPOR5bits.RP11R = 18;
 
                 //OC2 LEFT
-                RPOR4bits.RP8R = 19;
-                RPOR4bits.RP9R = 20;
+                RPOR4bits.RP8R = 20;
+                RPOR4bits.RP9R = 19;
             }
 
             temp_x = temp_UP + temp_RIGHT;
