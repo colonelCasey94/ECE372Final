@@ -43,7 +43,7 @@ _CONFIG2( IESO_OFF & SOSCSEL_SOSC & WUTSEL_LEG & FNOSC_PRIPLL & FCKSM_CSDCMD & O
 
 enum scanState{NOSCAN, WAIT, WHITE, READ, PRINT, PRINTWAIT};
 enum roboState{FIND, FOLLOW, TURNAROUND};
-enum lastSeen{RIGHT,LEFT,CENTER};
+enum lastSeen{LEFT,RIGHT,CENTER};
 
 volatile int state = 0;
 volatile int count = 0;
@@ -51,35 +51,28 @@ volatile int count = 0;
 
 int main(void)
 {
-    enum roboState roboState = FIND;
     enum lastSeen last = CENTER;
+    enum roboState roboState = FIND;
     int blackLineCounter = 0;
 
     TRISAbits.TRISA4 = 1; // setting up the push button
     CNEN1bits.CN0IE = 1;
     IFS1bits.CNIF = 0; // set flag low
     IEC1bits.CNIE = 1; // enable interrupt
+    
+    TRISAbits.TRISA1 = 1;
+    AD1PCFGbits.PCFG1 = 1;
+    CNPU1bits.CN3PUE = 1;
 
-//        // UART1 Setup
-//        RPINR18bits.U1RXR = 5;
-//	RPOR5bits.RP11R = 3;
-//        U1BRG  = BRGVAL;
-//	U1MODE = 0x8000;
-//        U1STA  = 0x0440;
-//	IFS0bits.U1RXIF = 0;
-//
-//        IFS1bits.CNIF = 0;
-//        IEC1bits.CNIE = 1;
-//
-//
-
-    TMR1 = 0;
+        TMR1 = 0;
     PR1 = 65000; // 57600
     T1CON = 0x8030;
     IFS0bits.T1IF = 0;
 //    IEC0bits.T1IE = 1;
     T1CONbits.TON = 0;
 
+
+       
         PR3 = 1032; // 0.1 second delay
 	TMR3 = 0;
         T3CON = 0x8000;
@@ -91,17 +84,16 @@ int main(void)
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
         int frontBlackWhite = 150;
         int ADC_Barcode;
-        int barcodeBlackRed = 150, barcodeRedWhite = 300, i = 0;
+        int barcodeBlackRed = 175, barcodeRedWhite = 300, i = 0;
         enum scanState currentScan = NOSCAN;
         char value[8];
         char value1[5] = "    ";
 
 //        AD1PCFG &= 0xFFC3;
-        AD1PCFGbits.PCFG0 = 0;
         AD1PCFGbits.PCFG2 = 0;
         AD1PCFGbits.PCFG3 = 0;
         AD1PCFGbits.PCFG4 = 0;
-        AD1PCFGbits.PCFG5 = 0;
+       // AD1PCFGbits.PCFG5 = 0;
         AD1CON2 = 0; // reference voltage
         AD1CON3 = 0x0101;  // sample conversion
         AD1CON1 = 0x20E4;  // sample conversion
@@ -139,10 +131,24 @@ int main(void)
 	LCDInitialize();
         int Long_Delay = 60000;
 
-        int flag = 1;
+        char* color = "";
 
-	while(1)
-	{
+        int flag = 1;
+        
+        
+        int ADC_UP, ADC_Side = 0;
+        int temp_UP, temp_LEFT, temp_RIGHT, temp_x, temp_y = 0;
+
+        while (1){  
+            if(PORTAbits.RA1 == 1)
+            {
+    ///////////////////////////////////////////////////////////////////////////////
+    //              AUTO-MODE                                                    //
+    ///////////////////////////////////////////////////////////////////////////////
+
+
+                LCDInitialize();
+                while ((PORTAbits.RA1 == 1)){
 ///////////////////////////////////////////////////////////////////////////////
 //              Scanning Front                                               //
 ///////////////////////////////////////////////////////////////////////////////
@@ -280,8 +286,6 @@ int main(void)
                         //turn left
                         OC1RS = PWM_Period_RIGHT;
                         OC2RS = PWM_Period_LEFT+100;
-                        //DelayUs(20000);
-//                        DelayUs(Long_Delay);
 
                     } else if (ADC_Front_Left > frontBlackWhite && ADC_Front_Mid > frontBlackWhite && ADC_Front_Right < frontBlackWhite){
                         flag = 1;
@@ -298,8 +302,6 @@ int main(void)
                         //turn right
                         OC1RS = PWM_Period_RIGHT+100;
                         OC2RS = PWM_Period_LEFT;
-                        //DelayUs(20000);
-//                        DelayUs(Long_Delay);
 
                     }else if (ADC_Front_Left < frontBlackWhite && ADC_Front_Mid < frontBlackWhite && ADC_Front_Right < frontBlackWhite) {
                         //finds all black
@@ -364,7 +366,7 @@ int main(void)
                         //turn right
                         OC1RS = PWM_Period_RIGHT+100;
                         OC2RS = PWM_Period_LEFT;
-                        
+
                     }else if (last == LEFT) {
 
                         RPOR5bits.RP10R = 20;
@@ -377,7 +379,7 @@ int main(void)
                         //turn right
                         OC1RS = PWM_Period_RIGHT+100;
                         OC2RS = PWM_Period_LEFT;
-                        
+
                     }else {
 
                         //all stop
@@ -475,11 +477,11 @@ int main(void)
                     break;
                 case READ:
                     if (ADC_Barcode < barcodeBlackRed){
-                        value1[i] = 'B';
+                        value1[i] = '0';
                         i++;
                         currentScan = WAIT;
                     } else if (ADC_Barcode < barcodeRedWhite){
-                        value1[i] = 'R';
+                        value1[i] = '1';
                         i++;
                         currentScan = WAIT;
                     } else {
@@ -504,9 +506,96 @@ int main(void)
                         currentScan = NOSCAN;
                     }
             }
+    ///////////////////////////////////////////////////////////////////////////////
+    //            END AUTO-MODE                                                  //
+    ///////////////////////////////////////////////////////////////////////////////
+                }
+            }
+            else
+            {
+    ///////////////////////////////////////////////////////////////////////////////
+    //              CONTROLLER                                                   //
+    ///////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////
+                AD1PCFGbits.PCFG10 = 0;
+                AD1PCFGbits.PCFG9 = 0;
+
+                TRISBbits.TRISB15 = 1;
+                TRISBbits.TRISB14 = 1;
+
+                temp_UP = 0, temp_LEFT = 0, temp_RIGHT = 0, temp_x = 0, temp_y = 0;
+
+                AD1CHS = 10; // AN2 pin for reference
+                DelayUs(2000);
+                while(IFS0bits.AD1IF == 0);
+                IFS0bits.AD1IF = 0;
+                ADC_UP = ADC1BUF0; // digital value
+
+                AD1CHS = 9; // AN2 pin for reference
+                DelayUs(2000);
+                while(IFS0bits.AD1IF == 0);
+                IFS0bits.AD1IF = 0;
+                ADC_Side = ADC1BUF0; // digital value
+
+
+
+
+                if(ADC_Side > 510){
+                    temp_LEFT = (ADC_Side - 512)*2 - 175;
+                    temp_RIGHT = 0;
+                }
+                if(ADC_Side < 500){
+                    temp_RIGHT = 1023 - (ADC_Side * 2);
+                    temp_LEFT = 0;
+                }
+
+                if(ADC_UP > 510){
+                    temp_UP = (ADC_UP - 512)*2;
+                }
+                if(ADC_UP < 500){
+                    temp_UP = 1023 - (ADC_UP * 2);
+                }
+
+                if(ADC_UP >= 510){
+                    //OC1 RIGHT
+                    RPOR5bits.RP10R = 18;
+                    RPOR5bits.RP11R = 20;
+
+                    //OC2 LEFT
+                    RPOR4bits.RP8R = 19;
+                    RPOR4bits.RP9R = 20;
+                }
+
+                else if(ADC_UP < 510){
+                    //OC1 RIGHT
+                    RPOR5bits.RP10R = 20;
+                    RPOR5bits.RP11R = 18;
+
+                    //OC2 LEFT
+                    RPOR4bits.RP8R = 20;
+                    RPOR4bits.RP9R = 19;
+                }
+
+                temp_x = temp_UP + temp_RIGHT;
+                if(temp_x > 1023){
+                    temp_x = 1023;
+                }
+
+                temp_y = temp_UP + temp_LEFT;
+                if(temp_y > 1023){
+                    temp_y = 1023;
+                }
+
+                OC1RS = temp_x; // RIGHT
+                OC2RS = temp_y;  // LEFT
+
+
+                //**********************************//
+                //**********************************//
+            }
         }
+
+
 
 	return 0;
 }
@@ -517,3 +606,7 @@ void __attribute__((interrupt)) _CNInterrupt(void)
 	IFS1bits.CNIF = 0;
 }
 
+
+
+
+ 
