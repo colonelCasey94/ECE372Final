@@ -84,7 +84,7 @@ int main(void)
         int ADC_Front_Mid = 0, ADC_Front_Right = 0, ADC_Front_Left = 0;
         int frontBlackWhite = 150;
         int ADC_Barcode;
-        int barcodeBlackRed = 175, barcodeRedWhite = 300, i = 0;
+        int barcodeBlackRed = 170, barcodeRedWhite = 550, i = 0;
         enum scanState currentScan = NOSCAN;
         char value[8];
         char value1[5] = "    ";
@@ -410,8 +410,8 @@ int main(void)
                         RPOR4bits.RP8R = 20;
                         RPOR4bits.RP9R = 19;
 
-                        OC2RS = 700;
-                        OC1RS = 700;
+                        OC2RS = 1000;
+                        OC1RS = 1000;
 
                         if (T1CONbits.TON == 0){
                             TMR1 = 0;
@@ -471,7 +471,6 @@ int main(void)
                         currentScan = READ;
                         LCDMoveCursor(1,0);
                         LCDPrintString("read");
-                        DelayUs(50000);
                         DelayUs(50000);
                     }
                     break;
